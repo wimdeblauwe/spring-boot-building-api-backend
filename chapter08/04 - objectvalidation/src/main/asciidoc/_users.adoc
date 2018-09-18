@@ -1,0 +1,24 @@
+//tag::initial-doc[]
+== User Management
+
+=== User information
+
+The API allows to get information on the currently logged on user
+via a `GET` on `/api/users/me`. If you are not a logged on user, the
+following response will be returned:
+
+operation::own-user-details-when-not-logged-in-example[snippets='http-request,http-response']
+//end::initial-doc[]
+
+If you do log on as a user, you get more information on that user:
+
+operation::authenticated-officer-details-example[snippets='http-request,http-response,response-fields']
+
+
+//tag::create-user[]
+=== Create a user
+
+To create an new user, do a `POST` on `/api/users`:
+
+operation::create-officer-example[snippets='http-request,request-fields,http-response,response-fields']
+//end::create-user[]

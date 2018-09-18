@@ -1,0 +1,30 @@
+<configuration>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%date{YYYY-MM-dd HH:mm:ss} %level [%thread] %logger{0} - %msg%n%ex</pattern>
+        </encoder>
+    </appender>
+
+    <root level="WARN">
+        <appender-ref ref="STDOUT"/>
+    </root>
+    <logger name="com.example.copsboot">
+        <level value="DEBUG"/>
+    </logger>
+    <logger name="org.hibernate">
+        <level value="WARN"/>
+    </logger>
+    <logger name="org.hibernate.type">
+        <level value="WARN"/> <!-- set to TRACE to view parameter binding in queries -->
+    </logger>
+    <logger name="org.springframework">
+        <level value="INFO"/>
+    </logger>
+    <logger name="org.flywaydb">
+        <level value="INFO"/>
+    </logger>
+    <logger name="org.springframework.security">
+        <level value="WARN"/>
+    </logger>
+
+</configuration>

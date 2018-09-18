@@ -1,0 +1,4 @@
+= Source Code to 'Practical Guide to Building an API Back End with Spring Boot'
+
+This repository contains the source code for the InfoQ mini-book 'Practical Guide to Building an API Back End with Spring Boot'. See https://www.infoq.com/minibooks/spring-boot-building-api-backend for the free download of the book.
+

@@ -95,11 +95,6 @@ public class UserRestControllerTest {
         }
 
         @Bean
-        public TokenStore tokenStore() {
-            return new InMemoryTokenStore(); //<4>
-        }
-
-        @Bean
         public SecurityConfiguration securityConfiguration() {
             return new SecurityConfiguration(); //<5>
         }

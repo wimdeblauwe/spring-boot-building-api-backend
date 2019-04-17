@@ -7,10 +7,11 @@ import javax.validation.constraints.NotNull;
 import java.util.Set;
 import java.util.UUID;
 
-
+//tag::class-def[]
 @Entity
 @Table(name = "copsboot_user")
 public class User extends AbstractEntity<UserId> {
+//end::class-def[]
 
     private String email;
     private String password;

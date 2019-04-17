@@ -153,11 +153,6 @@ public class UserRestControllerDocumentation {
         }
 
         @Bean
-        public TokenStore tokenStore() {
-            return new InMemoryTokenStore();
-        }
-
-        @Bean
         public SecurityConfiguration securityConfiguration() {
             return new SecurityConfiguration();
         }

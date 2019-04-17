@@ -1,3 +1,4 @@
+//tag::annotations-part[]
 package com.example.copsboot.user;
 
 import javax.persistence.*;
@@ -5,7 +6,6 @@ import javax.validation.constraints.NotNull;
 import java.util.Set;
 import java.util.UUID;
 
-//tag::annotations-part[]
 @Entity //<1>
 @Table(name = "copsboot_user") //<2>
 public class User {

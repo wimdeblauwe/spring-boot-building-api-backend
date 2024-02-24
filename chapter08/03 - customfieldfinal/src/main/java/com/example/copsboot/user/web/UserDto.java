@@ -1,21 +1,14 @@
 package com.example.copsboot.user.web;
 
 import com.example.copsboot.user.User;
-import com.example.copsboot.user.UserId;
-import com.example.copsboot.user.UserRole;
-import lombok.Value;
 
-import java.util.Set;
+import java.util.UUID;
 
-@Value
-public class UserDto {
-    private final UserId id;
-    private final String email;
-    private final Set<UserRole> roles;
-
+public record UserDto(UUID userId, String email, UUID authServerId, String mobileToken) {
     public static UserDto fromUser(User user) {
-        return new UserDto(user.getId(),
-                           user.getEmail(),
-                           user.getRoles());
+        return new UserDto(user.getId().getId(),
+                user.getEmail(),
+                user.getAuthServerId().value(),
+                user.getMobileToken());
     }
 }

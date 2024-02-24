@@ -2,8 +2,7 @@ package com.example.copsboot.user;
 
 import com.example.orm.jpa.InMemoryUniqueIdGenerator;
 import com.example.orm.jpa.UniqueIdGenerator;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -15,7 +14,6 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@RunWith(SpringRunner.class)
 @DataJpaTest
 public class UserRepositoryTest {
 

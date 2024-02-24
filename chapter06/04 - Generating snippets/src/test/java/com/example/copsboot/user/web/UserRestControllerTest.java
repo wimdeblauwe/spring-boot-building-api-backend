@@ -1,125 +1,89 @@
 package com.example.copsboot.user.web;
 
-import com.example.copsboot.infrastructure.SpringProfiles;
-import com.example.copsboot.infrastructure.security.OAuth2ServerConfiguration;
-import com.example.copsboot.infrastructure.security.SecurityConfiguration;
-import com.example.copsboot.infrastructure.security.StubUserDetailsService;
-import com.example.copsboot.user.UserService;
-import com.example.copsboot.user.Users;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import com.c4_soft.springaddons.security.oauth2.test.webmvc.AutoConfigureAddonsWebmvcResourceServerSecurity;
+import com.example.copsboot.infrastructure.security.WebSecurityConfiguration;
+import com.example.copsboot.user.*;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.oauth2.provider.token.TokenStore;
-import org.springframework.security.oauth2.provider.token.store.InMemoryTokenStore;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.Optional;
+import java.util.UUID;
 
-import static com.example.copsboot.infrastructure.security.SecurityHelperForMockMvc.*;
-import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-//tag::class-annotations[]
-@RunWith(SpringRunner.class)
+// tag::class-annotations[]
 @WebMvcTest(UserRestController.class)
-@ActiveProfiles(SpringProfiles.TEST)
-public class UserRestControllerTest {
-//end::class-annotations[]
+@AutoConfigureAddonsWebmvcResourceServerSecurity
+@Import(WebSecurityConfiguration.class)
+class UserRestControllerTest {
+    // end::class-annotations[]
 
     @Autowired
-    private MockMvc mvc;
+    private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
     @MockBean
-    private UserService service;
+    private UserService userService; //<.>
 
     @Test
-    public void givenNotAuthenticated_whenAskingMyDetails_forbidden() throws Exception {
-        mvc.perform(get("/api/users/me"))
-           .andExpect(status().isUnauthorized());
+    void givenUnauthenticatedUser_userInfoEndpointReturnsUnauthorized() throws Exception {
+        mockMvc.perform(get("/api/users/me"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
-    public void givenAuthenticatedAsOfficer_whenAskingMyDetails_detailsReturned() throws Exception {
-        String accessToken = obtainAccessToken(mvc, Users.OFFICER_EMAIL, Users.OFFICER_PASSWORD);
-
-        when(service.getUser(Users.officer().getId())).thenReturn(Optional.of(Users.officer()));
-
-        mvc.perform(get("/api/users/me")
-                            .header(HEADER_AUTHORIZATION, bearer(accessToken)))
-           .andExpect(status().isOk())
-           .andExpect(jsonPath("id").exists())
-           .andExpect(jsonPath("email").value(Users.OFFICER_EMAIL))
-           .andExpect(jsonPath("roles").isArray())
-           .andExpect(jsonPath("roles[0]").value("OFFICER"))
-        ;
+    void givenAuthenticatedUser_userInfoEndpointReturnsOk() throws Exception {
+        String subject = UUID.randomUUID().toString(); //<.>
+        mockMvc.perform(get("/api/users/me")
+                        .with(jwt().jwt(builder -> builder.subject(subject)))) //<.>
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("subject").value(subject)) //<.>
+                .andExpect(jsonPath("claims").isMap());
     }
 
     @Test
-    public void givenAuthenticatedAsCaptain_whenAskingMyDetails_detailsReturned() throws Exception {
-        String accessToken = obtainAccessToken(mvc, Users.CAPTAIN_EMAIL, Users.CAPTAIN_PASSWORD);
-
-        when(service.getUser(Users.captain().getId())).thenReturn(Optional.of(Users.captain()));
-
-        mvc.perform(get("/api/users/me")
-                            .header(HEADER_AUTHORIZATION, bearer(accessToken)))
-           .andExpect(status().isOk())
-           .andExpect(jsonPath("id").exists())
-           .andExpect(jsonPath("email").value(Users.CAPTAIN_EMAIL))
-           .andExpect(jsonPath("roles").isArray())
-           .andExpect(jsonPath("roles").value("CAPTAIN"));
+    void givenAuthenticatedOfficer_userIsCreated() throws Exception { //<.>
+        UserId userId = new UserId(UUID.randomUUID());
+        when(userService.createUser(any(CreateUserParameters.class)))
+                .thenReturn(new User(userId,
+                        "wim@example.com",
+                        new AuthServerId(UUID.fromString("eaa8b8a5-a264-48be-98de-d8b4ae2750ac")),
+                        "c41536a5a8b9d3f14a7e5472a5322b5e1f76a6e7a9255c2c2e7e0d3a2c5b9d0"));
+        mockMvc.perform(post("/api/users")
+                        .with(jwt().jwt(builder -> builder.subject(UUID.randomUUID().toString()))
+                                .authorities(new SimpleGrantedAuthority("ROLE_OFFICER")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "mobileToken": "c41536a5a8b9d3f14a7e5472a5322b5e1f76a6e7a9255c2c2e7e0d3a2c5b9d0"
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("userId").value(userId.asString()))
+                .andExpect(jsonPath("email").value("wim@example.com"))
+                .andExpect(jsonPath("authServerId").value("eaa8b8a5-a264-48be-98de-d8b4ae2750ac"));
     }
 
     @Test
-    public void testCreateOfficer() throws Exception {
-        String email = "wim.deblauwe@example.com";
-        String password = "my-super-secret-pwd";
-
-        CreateOfficerParameters parameters = new CreateOfficerParameters();
-        parameters.setEmail(email);
-        parameters.setPassword(password);
-
-        when(service.createOfficer(email, password)).thenReturn(Users.newOfficer(email, password));
-
-        mvc.perform(post("/api/users")
-                            .contentType(MediaType.APPLICATION_JSON_UTF8)
-                            .content(objectMapper.writeValueAsString(parameters)))
-           .andExpect(status().isCreated())
-           .andExpect(jsonPath("id").exists())
-           .andExpect(jsonPath("email").value(email))
-           .andExpect(jsonPath("roles").isArray())
-           .andExpect(jsonPath("roles[0]").value("OFFICER"));
-
-        verify(service).createOfficer(email, password);
-    }
-
-    @TestConfiguration
-    @Import(OAuth2ServerConfiguration.class)
-    static class TestConfig {
-        @Bean
-        public UserDetailsService userDetailsService() {
-            return new StubUserDetailsService();
-        }
-
-        @Bean
-        public SecurityConfiguration securityConfiguration() {
-            return new SecurityConfiguration();
-        }
-
+    void givenAuthenticatedUserThatIsNotAnOfficer_forbiddenIsReturned() throws Exception {
+        mockMvc.perform(post("/api/users")
+                        .with(jwt().jwt(builder -> builder.subject(UUID.randomUUID().toString())))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "mobileToken": "c41536a5a8b9d3f14a7e5472a5322b5e1f76a6e7a9255c2c2e7e0d3a2c5b9d0"
+                                }
+                                """))
+                .andExpect(status().isForbidden()); // <.>
     }
 }

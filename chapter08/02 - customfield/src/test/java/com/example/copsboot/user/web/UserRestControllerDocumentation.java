@@ -1,133 +1,94 @@
 package com.example.copsboot.user.web;
 
-import com.example.copsboot.infrastructure.test.CopsbootControllerTest;
-import com.example.copsboot.user.UserService;
-import com.example.copsboot.user.Users;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import com.example.copsboot.infrastructure.test.CopsbootControllerDocumentationTest;
+import com.example.copsboot.user.*;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
-import org.springframework.restdocs.JUnitRestDocumentation;
-import org.springframework.restdocs.mockmvc.RestDocumentationResultHandler;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.WebApplicationContext;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
-import java.util.Optional;
+import java.util.UUID;
 
-import static com.example.copsboot.infrastructure.security.SecurityHelperForMockMvc.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
-import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.*;
 import static org.springframework.restdocs.payload.PayloadDocumentation.*;
-import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-//tag::class-annotations[]
-@RunWith(SpringRunner.class)
-@CopsbootControllerTest(UserRestController.class)
+@CopsbootControllerDocumentationTest(UserRestController.class)
 public class UserRestControllerDocumentation {
-//end::class-annotations[]
-    @Rule
-    public final JUnitRestDocumentation restDocumentation = new JUnitRestDocumentation("target/generated-snippets");
-
-    private MockMvc mvc;
 
     @Autowired
-    private ObjectMapper objectMapper;
+    private MockMvc mockMvc;
+
     @MockBean
     private UserService service;
-
-    //tag::setup-method[]
-    @Autowired
-    private WebApplicationContext context; //<1>
-    private RestDocumentationResultHandler resultHandler; //<2>
-
-    @Before
-    public void setUp() {
-        resultHandler = document("{method-name}", //<3>
-                                 preprocessRequest(prettyPrint()), //<4>
-                                 preprocessResponse(prettyPrint(), //<5>
-                                                    removeMatchingHeaders("X.*", //<6>
-                                                                          "Pragma",
-                                                                          "Expires")));
-        mvc = MockMvcBuilders.webAppContextSetup(context) //<7>
-                             .apply(springSecurity()) //<8>
-                             .apply(documentationConfiguration(restDocumentation)) //<9>
-                             .alwaysDo(resultHandler) //<10>
-                             .build();
-    }
-    //end::setup-method[]
 
     //tag::not-logged-in[]
     @Test
     public void ownUserDetailsWhenNotLoggedInExample() throws Exception {
-        mvc.perform(get("/api/users/me"))
-           .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/users/me"))
+                .andExpect(status().isUnauthorized())
+                .andDo(document("own-details-unauthorized"));
     }
     //end::not-logged-in[]
 
     //tag::officer-details[]
     @Test
     public void authenticatedOfficerDetailsExample() throws Exception {
-        String accessToken = obtainAccessToken(mvc, Users.OFFICER_EMAIL, Users.OFFICER_PASSWORD);
-
-        when(service.getUser(Users.officer().getId())).thenReturn(Optional.of(Users.officer()));
-
-        mvc.perform(get("/api/users/me")
-                            .header(HEADER_AUTHORIZATION, bearer(accessToken)))
-           .andExpect(status().isOk())
-           .andDo(resultHandler.document(
-                   responseFields(
-                           fieldWithPath("id")
-                                   .description("The unique id of the user."),
-                           fieldWithPath("email")
-                                   .description("The email address of the user."),
-                           fieldWithPath("roles")
-                                   .description("The security roles of the user."))));
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/users/me")
+                        .with(jwt().jwt(builder -> builder.subject(UUID.randomUUID().toString()))
+                                .authorities(new SimpleGrantedAuthority("ROLE_OFFICER"))))
+                .andExpect(status().isOk())
+                .andDo(document("own-details",
+                        responseFields(
+                                fieldWithPath("subject").description("The subject from the JWT token"),
+                                subsectionWithPath("claims").description("The claims from the JWT token")
+                        )));
     }
-
     //end::officer-details[]
 
 
     //tag::create-officer[]
     @Test
     public void createOfficerExample() throws Exception {
-        String email = "wim.deblauwe@example.com";
-        String password = "my-super-secret-pwd";
-
-        CreateOfficerParameters parameters = new CreateOfficerParameters(); //<1>
-        parameters.setEmail(email);
-        parameters.setPassword(password);
-
-        when(service.createOfficer(email, password)).thenReturn(Users.newOfficer(email, password)); //<2>
-
-        mvc.perform(post("/api/users") //<3>
-                                       .contentType(MediaType.APPLICATION_JSON_UTF8)
-                                       .content(objectMapper.writeValueAsString(parameters))) //<4>
-           .andExpect(status().isCreated()) //<5>
-           .andDo(resultHandler.document(
-                   requestFields( //<6>
-                                  fieldWithPath("email")
-                                          .description("The email address of the user to be created."),
-                                  fieldWithPath("password")
-                                          .description("The password for the new user.")
-                   ),
-                   responseFields( //<7>
-                                   fieldWithPath("id")
-                                           .description("The unique id of the user."),
-                                   fieldWithPath("email")
-                                           .description("The email address of the user."),
-                                   fieldWithPath("roles")
-                                           .description("The security roles of the user."))));
+        UserId userId = new UserId(UUID.randomUUID());
+        when(service.createUser(any(CreateUserParameters.class)))
+                .thenReturn(new User(userId,
+                        "wim@example.com",
+                        new AuthServerId(UUID.fromString("eaa8b8a5-a264-48be-98de-d8b4ae2750ac")),
+                        "c41536a5a8b9d3f14a7e5472a5322b5e1f76a6e7a9255c2c2e7e0d3a2c5b9d0"));
+        mockMvc.perform(post("/api/users")
+                        .with(jwt().jwt(builder -> builder.subject(UUID.randomUUID().toString()))
+                                .authorities(new SimpleGrantedAuthority("ROLE_OFFICER")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "mobileToken": "c41536a5a8b9d3f14a7e5472a5322b5e1f76a6e7a9255c2c2e7e0d3a2c5b9d0"
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andDo(document("create-user",
+                        requestFields( // <.>
+                                fieldWithPath("mobileToken")
+                                        .description("The unique mobile token of the device (for push notifications).")
+                        ),
+                        responseFields( // <.>
+                                fieldWithPath("userId")
+                                        .description("The unique id of the user."),
+                                fieldWithPath("email")
+                                        .description("The email address of the user."),
+                                fieldWithPath("authServerId")
+                                        .description("The id of the user on the authorization server."),
+                                fieldWithPath("mobileToken")
+                                        .description("The unique mobile token of the device (for push notifications).")
+                        )));
     }
     //end::create-officer[]
 }

@@ -1,36 +1,36 @@
 package com.example.copsboot.report;
 
-import com.example.copsboot.user.User;
+import com.example.copsboot.user.UserId;
 import com.example.orm.jpa.AbstractEntity;
 import com.example.util.ArtifactForFramework;
+import jakarta.persistence.Entity;
 
-import javax.persistence.Entity;
-import javax.persistence.ManyToOne;
-import java.time.ZonedDateTime;
+import java.time.Instant;
+
 //tag::class[]
 @Entity
 public class Report extends AbstractEntity<ReportId> {
-    @ManyToOne
-    private User reporter;
-    private ZonedDateTime dateTime;
+
+    private UserId reporterId;
+    private Instant dateTime;
     private String description;
 
     @ArtifactForFramework
     protected Report() {
     }
 
-    public Report(ReportId id, User reporter, ZonedDateTime dateTime, String description) {
+    public Report(ReportId id, UserId reporterId, Instant dateTime, String description) {
         super(id);
-        this.reporter = reporter;
+        this.reporterId = reporterId;
         this.dateTime = dateTime;
         this.description = description;
     }
 
-    public User getReporter() {
-        return reporter;
+    public UserId getReporterId() {
+        return reporterId;
     }
 
-    public ZonedDateTime getDateTime() {
+    public Instant getDateTime() {
         return dateTime;
     }
 

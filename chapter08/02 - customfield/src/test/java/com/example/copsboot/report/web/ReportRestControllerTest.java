@@ -1,61 +1,76 @@
 package com.example.copsboot.report.web;
 
 import com.example.copsboot.infrastructure.test.CopsbootControllerTest;
+import com.example.copsboot.report.CreateReportParameters;
 import com.example.copsboot.report.Report;
 import com.example.copsboot.report.ReportId;
 import com.example.copsboot.report.ReportService;
-import com.example.copsboot.user.Users;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import com.example.copsboot.user.AuthServerId;
+import com.example.copsboot.user.User;
+import com.example.copsboot.user.UserId;
+import com.example.copsboot.user.UserService;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.time.ZonedDateTime;
+import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 
-import static com.example.copsboot.infrastructure.security.SecurityHelperForMockMvc.*;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 //tag::class[]
-@RunWith(SpringRunner.class)
 @CopsbootControllerTest(ReportRestController.class)
 public class ReportRestControllerTest {
     @Autowired
-    private MockMvc mvc;
-
-    @Autowired
-    private ObjectMapper objectMapper;
+    private MockMvc mockMvc;
     @MockBean
     private ReportService service;
+    @MockBean
+    private UserService userService;
 
     @Test
     public void officerIsAbleToPostAReport() throws Exception {
-        String accessToken = obtainAccessToken(mvc, Users.OFFICER_EMAIL, Users.OFFICER_PASSWORD);
-        ZonedDateTime dateTime = ZonedDateTime.parse("2018-04-11T22:59:03.189+02:00");
-        String description = "This is a test report description.";
-        CreateReportParameters parameters = new CreateReportParameters(dateTime,
-                                                                       description);
-        when(service.createReport(eq(Users.officer().getId()), any(ZonedDateTime.class), eq(description)))
-                .thenReturn(new Report(new ReportId(UUID.randomUUID()), Users.officer(), dateTime, description));
 
-        mvc.perform(post("/api/reports")
-                            .header(HEADER_AUTHORIZATION, bearer(accessToken))
-                            .contentType(MediaType.APPLICATION_JSON_UTF8)
-                            .content(objectMapper.writeValueAsString(parameters)))
-           .andExpect(status().isCreated())
-           .andExpect(jsonPath("id").exists())
-           .andExpect(jsonPath("reporter").value(Users.OFFICER_EMAIL))
-           .andExpect(jsonPath("dateTime").value("2018-04-11T22:59:03.189+02:00"))
-           .andExpect(jsonPath("description").value(description));
+        UserId userId = new UserId(UUID.randomUUID());
+        AuthServerId authServerId = new AuthServerId(UUID.fromString("eaa8b8a5-a264-48be-98de-d8b4ae2750ac"));
+        User user = new User(userId,
+                "wim@example.com",
+                authServerId,
+                "c41536a5a8b9d3f14a7e5472a5322b5e1f76a6e7a9255c2c2e7e0d3a2c5b9d0");
+        when(userService.findUserByAuthServerId(authServerId))
+                .thenReturn(Optional.of(user));
+        when(userService.getUserById(userId))
+                .thenReturn(user);
+        when(service.createReport(any(CreateReportParameters.class)))
+                .thenReturn(new Report(new ReportId(UUID.randomUUID()),
+                        userId,
+                        Instant.parse("2023-04-11T22:59:03.189+02:00"),
+                        "This is a test report description."));
+        mockMvc.perform(post("/api/reports")
+                        .with(jwt().jwt(builder -> builder.subject(authServerId.value().toString())
+                                        .claim("email", "wim@example.com"))
+                                .authorities(new SimpleGrantedAuthority("ROLE_OFFICER")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "dateTime": "2023-04-11T22:59:03.189+02:00",
+                                    "description": "This is a test report description."
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("id").exists())
+                .andExpect(jsonPath("reporter").value("wim@example.com"))
+                .andExpect(jsonPath("dateTime").value("2023-04-11T20:59:03.189Z"))
+                .andExpect(jsonPath("description").value("This is a test report description."));
     }
 }
 //end::class[]

@@ -2,7 +2,8 @@ package com.example.copsboot.util.test;
 
 import org.assertj.core.api.AbstractAssert;
 
-import javax.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolation;
+
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -21,12 +22,12 @@ public class ConstraintViolationSetAssert extends AbstractAssert<ConstraintViola
         // check condition
         if (!containsViolationWithPath(actual, path)) {
             failWithMessage("There was no violation with path <%s>. Violation paths: <%s>", path, actual.stream()
-                                                                                                        .map(violation -> violation
-                                                                                                                .getPropertyPath()
-                                                                                                                .toString())
-                                                                                                        .collect(
-                                                                                                                Collectors
-                                                                                                                        .toList()));
+                    .map(violation -> violation
+                            .getPropertyPath()
+                            .toString())
+                    .collect(
+                            Collectors
+                                    .toList()));
         }
 
         return this;

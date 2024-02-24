@@ -1,7 +1,6 @@
 package com.example.copsboot.infrastructure.mvc;
 
 import org.springframework.http.HttpStatus;
-import org.springframework.validation.BindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -14,29 +13,17 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 //tag::class[]
-@ControllerAdvice
+@ControllerAdvice //<1>
 public class RestControllerExceptionHandler {
 
-    @ExceptionHandler
-    @ResponseBody
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, List<FieldErrorResponse>> handle(MethodArgumentNotValidException exception) {
+    @ExceptionHandler //<2>
+    @ResponseBody //<3>
+    @ResponseStatus(HttpStatus.BAD_REQUEST) //<4>
+    public Map<String, List<FieldErrorResponse>> handle(MethodArgumentNotValidException exception) { //<5>
         return error(exception.getBindingResult()
                               .getFieldErrors()
                               .stream()
-                              .map(fieldError -> new FieldErrorResponse(fieldError.getField(),
-                                                                        fieldError.getDefaultMessage()))
-                              .collect(Collectors.toList()));
-    }
-
-    @ExceptionHandler
-    @ResponseBody
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map handle(BindException exception) {
-        return error(exception.getBindingResult()
-                              .getFieldErrors()
-                              .stream()
-                              .map(fieldError -> new FieldErrorResponse(fieldError.getField(),
+                              .map(fieldError -> new FieldErrorResponse(fieldError.getField(), //<6>
                                                                         fieldError.getDefaultMessage()))
                               .collect(Collectors.toList()));
     }

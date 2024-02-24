@@ -1,12 +1,10 @@
 package com.example.copsboot.user;
 
 import com.example.orm.jpa.AbstractEntity;
-import com.google.common.collect.Sets;
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 
-import javax.persistence.*;
-import javax.validation.constraints.NotNull;
 import java.util.Set;
-
 
 @Entity
 @Table(name = "copsboot_user")
@@ -32,11 +30,11 @@ public class User extends AbstractEntity<UserId> {
     }
 
     public static User createOfficer(UserId userId, String email, String encodedPassword) {
-        return new User(userId, email, encodedPassword, Sets.newHashSet(UserRole.OFFICER));
+        return new User(userId, email, encodedPassword, Set.of(UserRole.OFFICER));
     }
 
     public static User createCaptain(UserId userId, String email, String encodedPassword) {
-        return new User(userId, email, encodedPassword, Sets.newHashSet(UserRole.CAPTAIN));
+        return new User(userId, email, encodedPassword, Set.of(UserRole.CAPTAIN));
     }
 
     public String getEmail() {

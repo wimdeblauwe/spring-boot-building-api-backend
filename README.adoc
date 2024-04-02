@@ -2,3 +2,6 @@
 
 This repository contains the source code for the InfoQ mini-book 'Practical Guide to Building an API Back End with Spring Boot'. See https://www.infoq.com/minibooks/spring-boot-building-api-backend for the free download of the book.
 
+This branch contains the sources for the latest version of the book, targeting Spring Boot 3.
+
+If you want to view the sources for the previous edition of the book targeting Spring Boot 2, see the https://github.com/wimdeblauwe/spring-boot-building-api-backend/tree/release/1.x[release/1.x] branch.

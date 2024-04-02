@@ -1,10 +1,9 @@
 package com.example.copsboot.report.web;
 
-import javax.validation.ConstraintValidator;
-import javax.validation.ConstraintValidatorContext;
+import jakarta.validation.ConstraintValidator;
+import jakarta.validation.ConstraintValidatorContext;
 
-public class ReportDescriptionValidator
-        implements ConstraintValidator<ValidReportDescription, String> { //<1>
+public class ReportDescriptionValidator implements ConstraintValidator<ValidReportDescription, String> { //<1>
 
     @Override
     public void initialize(ValidReportDescription constraintAnnotation) { //<2>

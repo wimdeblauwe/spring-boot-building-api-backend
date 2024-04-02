@@ -3,14 +3,16 @@ package com.example.copsboot.user;
 import com.example.copsboot.infrastructure.SpringProfiles;
 import com.example.orm.jpa.InMemoryUniqueIdGenerator;
 import com.example.orm.jpa.UniqueIdGenerator;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.HashSet;
 import java.util.Locale;
@@ -19,62 +21,34 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@RunWith(SpringRunner.class)
 @DataJpaTest
-@ActiveProfiles(SpringProfiles.TEST)
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE) //<1>
+@ActiveProfiles(SpringProfiles.REPOSITORY_TEST) //<2>
 public class UserRepositoryTest {
 
     @Autowired
     private UserRepository repository;
+    @PersistenceContext
+    private EntityManager entityManager;
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
-    //tag::testStoreUser[]
     @Test
     public void testStoreUser() {
-        HashSet<UserRole> roles = new HashSet<>();
-        roles.add(UserRole.OFFICER);
-        User user = repository.save(new User(repository.nextId(), //<1>
-                                             "alex.foley@beverly-hills.com",
-                                             "my-secret-pwd",
-                                             roles));
-        assertThat(user).isNotNull(); //<6>
+        User user = repository.save(new User(repository.nextId(),
+                "alex.foley@beverly-hills.com",
+                new AuthServerId(UUID.randomUUID()),
+                "c41536a5a8b9d3f14a7e5472a5322b5e1f76a6e7a9255c2c2e7e0d3a2c5b9d0"));
+        assertThat(user).isNotNull();
 
-        assertThat(repository.count()).isEqualTo(1L); //<7>
-    }
-    //end::testStoreUser[]
+        assertThat(repository.count()).isEqualTo(1L);
 
-    //tag::find-by-email-tests[]
-    @Test
-    public void testFindByEmail() {
-        User user = Users.newRandomOfficer();
-        repository.save(user);
-        Optional<User> optional = repository.findByEmailIgnoreCase(user.getEmail());
+        entityManager.flush(); //<3>
 
-        assertThat(optional).isNotEmpty()
-                            .contains(user);
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM copsboot_user", Long.class)).isEqualTo(1L); //<4>
+        assertThat(jdbcTemplate.queryForObject("SELECT email FROM copsboot_user", String.class)).isEqualTo("alex.foley@beverly-hills.com");
     }
 
-    @Test
-    public void testFindByEmailIgnoringCase() {
-        User user = Users.newRandomOfficer();
-        repository.save(user);
-        Optional<User> optional = repository.findByEmailIgnoreCase(user.getEmail()
-                                                                       .toUpperCase(Locale.US));
-
-        assertThat(optional).isNotEmpty()
-                            .contains(user);
-    }
-
-    @Test
-    public void testFindByEmail_unknownEmail() {
-        User user = Users.newRandomOfficer();
-        repository.save(user);
-        Optional<User> optional = repository.findByEmailIgnoreCase("will.not@find.me");
-
-        assertThat(optional).isEmpty();
-    }
-    //end::find-by-email-tests[]
-
-    //tag::testconfig[]
     @TestConfiguration
     static class TestConfig {
         @Bean
@@ -82,5 +56,4 @@ public class UserRepositoryTest {
             return new InMemoryUniqueIdGenerator();
         }
     }
-    //end::testconfig[]
 }

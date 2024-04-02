@@ -1,5 +1,6 @@
 package com.example.orm.jpa;
 
+
 /**
  * Interface for entity objects.
  *

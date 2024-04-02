@@ -5,7 +5,7 @@
         </encoder>
     </appender>
 
-    <root level="WARN">
+    <root level="INFO">
         <appender-ref ref="STDOUT"/>
     </root>
     <logger name="com.example.copsboot">
@@ -16,12 +16,6 @@
     </logger>
     <logger name="org.hibernate.type">
         <level value="WARN"/> <!-- set to TRACE to view parameter binding in queries -->
-    </logger>
-    <logger name="org.springframework">
-        <level value="INFO"/>
-    </logger>
-    <logger name="org.flywaydb">
-        <level value="INFO"/>
     </logger>
     <logger name="org.springframework.security">
         <level value="WARN"/>

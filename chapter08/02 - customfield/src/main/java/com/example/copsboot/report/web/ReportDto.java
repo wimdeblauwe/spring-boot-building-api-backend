@@ -2,23 +2,21 @@ package com.example.copsboot.report.web;
 
 import com.example.copsboot.report.Report;
 import com.example.copsboot.report.ReportId;
-import lombok.Value;
+import com.example.copsboot.user.UserService;
 
-import java.time.ZonedDateTime;
+import java.time.Instant;
 
 //tag::class[]
-@Value
-public class ReportDto {
-    private ReportId id;
-    private String reporter;
-    private ZonedDateTime dateTime;
-    private String description;
+public record ReportDto(ReportId id,
+                        String reporter,
+                        Instant dateTime,
+                        String description) {
 
-    public static ReportDto fromReport(Report report) {
+    public static ReportDto fromReport(Report report, UserService userService) {
         return new ReportDto(report.getId(),
-                             report.getReporter().getEmail(),
-                             report.getDateTime(),
-                             report.getDescription());
+                userService.getUserById(report.getReporterId()).getEmail(),
+                report.getDateTime(),
+                report.getDescription());
     }
 }
 //end::class[]

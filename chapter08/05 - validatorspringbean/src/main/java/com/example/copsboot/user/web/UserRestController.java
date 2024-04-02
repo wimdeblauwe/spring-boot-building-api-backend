@@ -1,49 +1,53 @@
 package com.example.copsboot.user.web;
 
-import com.example.copsboot.infrastructure.security.ApplicationUserDetails;
+import com.example.copsboot.user.AuthServerId;
+import com.example.copsboot.user.CreateUserParameters;
 import com.example.copsboot.user.User;
-import com.example.copsboot.user.UserNotFoundException;
 import com.example.copsboot.user.UserService;
-import lombok.Value;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.validation.FieldError;
-import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.ConstraintViolation;
-import javax.validation.ConstraintViolationException;
-import javax.validation.Valid;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Optional;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/users")
 public class UserRestController {
+    private final UserService userService;
 
-    private final UserService service;
-
-    @Autowired
-    public UserRestController(UserService service) {
-        this.service = service;
+    public UserRestController(UserService userService) {
+        this.userService = userService;
     }
 
-    @GetMapping("/me")
-    public UserDto currentUser(@AuthenticationPrincipal ApplicationUserDetails userDetails) {
-        User user = service.getUser(userDetails.getUserId())
-                           .orElseThrow(() -> new UserNotFoundException(userDetails.getUserId()));
-        return UserDto.fromUser(user);
-    }
+    // tag::myself[]
+    @GetMapping("/me") //<.>
+    public Map<String, Object> myself(@AuthenticationPrincipal Jwt jwt) { //<.>
+        Optional<User> userByAuthServerId = userService.findUserByAuthServerId(new AuthServerId(UUID.fromString(jwt.getSubject())));
 
-    //tag::post[]
+        Map<String, Object> result = new HashMap<>();
+        userByAuthServerId.ifPresent(user -> result.put("userId", user.getId().asString()));
+        result.put("subject", jwt.getSubject());
+        result.put("claims", jwt.getClaims());
+
+        return result;
+    }
+    // end::myself[]
+
+    // tag::createUser[]
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public UserDto createOfficer(@Valid @RequestBody CreateOfficerParameters parameters) {
-        User officer = service.createOfficer(parameters.getEmail(),
-                                             parameters.getPassword());
-        return UserDto.fromUser(officer);
+    @PreAuthorize("hasRole('OFFICER')")
+    public UserDto createUser(@AuthenticationPrincipal Jwt jwt,
+                              @Valid @RequestBody CreateUserRequest request) {
+        CreateUserParameters parameters = request.toParameters(jwt);
+        User user = userService.createUser(parameters);
+        return UserDto.fromUser(user);
     }
-    //end::post[]
+    // end::createUser[]
 }

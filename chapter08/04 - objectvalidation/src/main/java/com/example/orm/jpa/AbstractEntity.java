@@ -2,8 +2,8 @@ package com.example.orm.jpa;
 
 import com.example.util.ArtifactForFramework;
 
-import javax.persistence.EmbeddedId;
-import javax.persistence.MappedSuperclass;
+import jakarta.persistence.EmbeddedId;
+import jakarta.persistence.MappedSuperclass;
 import java.util.Objects;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
